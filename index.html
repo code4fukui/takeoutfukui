@@ -53,7 +53,7 @@ h1 img {
 	width: 50vw;
 }
 input[type=text] {
-	max-width: 1000px;
+	x-max-width: 1000px;
 	width: 50vw;
 	margin: .5em .2em 0.2em .5em;
 	font-size: 24px;
@@ -98,7 +98,7 @@ h2 {
 	margin: 0;
 }
 .container {
-	max-width: 1200px;
+	x-max-width: 480px;
 	margin: 0 auto;
 }
 .item {
@@ -151,6 +151,11 @@ h2 {
 	margin: .5em 0.2em;
 	cursor: pointer;
 }
+.linka {
+	position: relative;
+	top: -1.5em;
+	display: block;
+}
 #src {
 	margin: .5em;
 	text-align: center;
@@ -178,6 +183,31 @@ h2 {
 }
 #qrcodecontainer {
 	text-align: center;
+}
+@media screen and (min-width: 560px) {
+	body {
+		font-size: 14px;
+		margin: 0 0 1em 0;
+	}
+	h1 {
+		font-size: 48px;
+	}
+	.subtitle {
+		font-size: 16px;
+	}
+	input[type=text] {
+		width: 300px;
+	}
+	#mapid {
+		position: fixed;
+		top: 0;
+		right: 0;
+		width: calc(100% - 480px);
+		height: 100vh;
+	}
+	#mainview {
+		width: 480px;
+	}
 }
 </style>
 <script>"use strict"
@@ -329,7 +359,7 @@ flg_delivery: ""
 */
 // <ruby>${d['http://xmlns.com/foaf/0.1/#name']}<rt>${d['name_yomi']}</rt></ruby>
 			div.innerHTML = `
-				<a name=${encodeURIComponent(d.name)}>
+				<a name=${encodeURIComponent(d.name)} class=linka>
 				<h2><a href=#${encodeURIComponent(d.name)}>${d.name}</a></h2>
 				<div class=description>${d.description}</div>
 				<div class=url><a href=${'https://www.google.com/maps/dir/?api=1&destination=' + d.latitude + "," + d.longitude}>お店へナビ</a></div>
@@ -432,7 +462,8 @@ flg_delivery: ""
 </head>
 <body>
 
-<div id="mapid"></div>
+<section id="mapid"></section>
+<section id='mainview'>
 
 <h1 id=title>TAKEOUT FUKUI<div class=subtitle>福井県のお持ち帰りグルメまとめました <a href=https://dearfukui.jp/gourmet/12951>#頑張ろう福井グルメ</a></div></h1>
 <div class="container">
@@ -467,6 +498,8 @@ App：TAKEOUT FUKUI - <a href=https://creativecommons.org/licenses/by/4.0/deed.j
 </div>
 <div id=qrcodecontainer><img id=qrcode><script>addEventListener("load", () => qrcode.src = "https://chart.apis.google.com/chart?chs=140x140&cht=qr&chl=" + encodeURIComponent(document.location))</script></div>
 </div>
+
+</seciton>
 
 </body>
 </html>
