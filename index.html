@@ -17,14 +17,30 @@
 <meta name="twitter:image" content="https://code4fukui.github.io/takeoutfukui/img/takeoutfukui.png"/>
 <meta property="og:image" content="https://code4fukui.github.io/takeoutfukui/img/takeoutfukui.png"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<!--<meta name="format-detection" content="telephone=no"/>-->
+<meta name="format-detection" content="telephone=no"/>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+<script src="https://code4fukui.github.io/egmapjs/egmap.js"></script>
+<link rel="stylesheet" href="https://code4fukui.github.io/egmapjs/egmap.css"/>
+<script src="https://fukuno.jig.jp/fukuno.js"></script>
+<script src="https://code4fukui.github.io/egmapjs/sparql.js"></script>
+
 <style>
 body {
 	--main-color: hsl(10, 90%, 60%);
 	font-family: sans-serif;
 	font-size: 1.5vmax;
-	margin: 0;
+	margin: 0 0 26vh 0;
 	background-color: var(--main-color);
+}
+#mapid {
+	position: fixed;
+	bottom: 0;
+	width: 100vw;
+	height: 25vh;
+	z-index: 1;
+	border-top: 4px solid white;
 }
 h1 {
 	margin: 0;
@@ -179,6 +195,12 @@ window.onload = async function() {
 	console.log(data)
 	shuffle(data)
 
+	const map = initMap('mapid')
+	map.setZoom(16)
+	map.panTo([ 35.943560,136.188917 ]) // 鯖江駅
+
+	map.addIcon(35.944571, 136.186228 , "Hana道場", "icon/hanadojo.png", 64)
+
 	const addTag = function(tag) {
 		const div = create('div')
 		div.textContent = tag
@@ -212,6 +234,7 @@ window.onload = async function() {
 	*/
 
 	const items = []
+	let icons = []
 	const show = function() {
 		const key = searchbox.value
 		clear(main)
@@ -236,6 +259,12 @@ window.onload = async function() {
 		document.location.hash = hash.length > 0 ? '#' + encodeURIComponent(hash) : ""
 		let cnt = 0
 		const maxcnt = 20
+		const lls = []
+
+		for (const icon of icons) {
+			map.removeLayer(icon)
+		}
+		icons = []
 		A: for (const d of data) {
 			if (key) {
 				const keys = key.replace(/　/g, ' ').split(' ')
@@ -274,7 +303,8 @@ flg_delivery: ""
 */
 // <ruby>${d['http://xmlns.com/foaf/0.1/#name']}<rt>${d['name_yomi']}</rt></ruby>
 			div.innerHTML = `
-				<h2>${d.name}</h2>
+				<a name=${encodeURIComponent(d.name)}>
+				<h2><a href=#${encodeURIComponent(d.name)}>${d.name}</a></h2>
 				<div class=description>${d.description}</div>
 				<div class=url><a href=${'https://www.google.com/maps/dir/?api=1&destination=' + d.latitude + "," + d.longitude}>お店へナビ</a></div>
 				</div>
@@ -302,9 +332,23 @@ flg_delivery: ""
 			}
 			*/
 			main.appendChild(div)
+
+			const ll = [ d.latitude, d.longitude ]
+			const iconimg = d.flg_takeout ? 'img/icon_takeout.png' : 'img/icon_delivery.png'
+			const icon = map.addIcon(ll[0], ll[1], function(e) {
+				const d = e.sourceTarget.data
+				document.location.hash = '#' + encodeURIComponent(d.name)
+			}, iconimg, 48)
+			icon.data = d
+			icons.push(icon)
+			lls.push(ll)
+
 			//if (cnt == maxcnt)
 			//	break
+
 		}
+		if (lls.length > 0)
+			map.fitBounds(lls)
 		total.textContent = `${cnt}件 / ${data.length}件`
 	}
 	searchbox.onkeyup = searchbox.onchange = show
@@ -349,131 +393,11 @@ flg_delivery: ""
 		show()
 	}
 }
-// util
-const convertCSVtoArray = function(s) {
-	const res = []
-	let st = 0
-	let line = []
-	let sb = null
-	if (!s.endsWith("\n"))
-		s += "\n"
-	const len = s.length
-	for (let i = 0; i < len; i++) {
-		let c = s.charAt(i)
-		if (c == '\r')
-			continue
-		if (st == 0) {
-			if (c == '\n') {
-				if (line.length > 0)
-					line.push("")
-				res.push(line)
-				line = []
-			} else if (c == ',') {
-				line.push("")
-			} else if (c == '"') {
-				sb = ""
-				st = 2
-			} else {
-				sb = c
-				st = 1
-			}
-		} else if (st == 1) {
-			if (c == '\n') {
-				line.push(sb)
-				res.push(line)
-				line = []
-				st = 0
-				sb = null
-			} else if (c == ',') {
-				line.push(sb)
-				sb = null
-				st = 0
-			} else {
-				sb += c
-			}
-		} else if (st == 2) {
-			if (c == '"') {
-				st = 3
-			} else {
-				sb += c
-			}
-		} else if (st == 3) {
-			if (c == '"') {
-				sb += c
-				st = 2
-			} else if (c == ',') {
-				line.push(sb)
-				sb = null
-				st = 0
-			} else if (c == '\n') {
-				line.push(sb)
-				res.push(line)
-				line = []
-				st = 0
-				sb = null
-			}
-		}
-	}
-	if (sb != null)
-		line.push(sb)
-	if (line.length > 0)
-		res.push(line)
-	return res
-}
-const csv2json = function(csv) {
-	const res = []
-	const head = csv[0]
-	for (let i = 1; i < csv.length; i++) {
-		const d = {}
-		for (let j = 0; j < head.length; j++) {
-			d[head[j]] = csv[i][j]
-		}
-		res.push(d)
-	}
-	return res
-}
-const fetchViaProxy = async function(url) {
-	//const proxyhost = "https://app.sabae.cc/proxy"
-	const proxyhost = "http://localhost:8003/proxy"
-	const proxyurl = proxyhost + "/?url=" + encodeURIComponent(url)
-	const data = await (await fetch(proxyurl)).text()
-	return data
-}
-const fetchGoogleSpreadSheet = async function(key) {
-	const csvurl = `https://docs.google.com/spreadsheets/d/e/${key}/pub?gid=0&single=true&output=csv`
-	const csv = await fetchViaProxy(csvurl)
-	const data = convertCSVtoArray(csv)
-	//data.shift()
-	return csv2json(data)
-}
-const create = function(tag, cls) {
-	var res = document.createElement(tag)
-	if (cls != null)
-		res.className = cls
-	return res
-}
-const clear = function(id) {
-	var div = typeof id == "string" ? get(id) : id
-	while (div.hasChildNodes()) {
-		div.removeChild(div.lastChild)
-	}
-	div.scrollTop = 0
-	div.scrollLeft = 0
-}
-const rnd = function(n) {
-	return Math.floor(Math.random() * n)
-}
-const shuffle = function(array) {
-	for (let i = 0; i < array.length; i++) {
-		const n = rnd(array.length)
-		const tmp = array[i]
-		array[i] = array[n]
-		array[n] = tmp
-	}
-}
 </script>
 </head>
 <body>
+
+<div id="mapid"></div>
 
 <h1 id=title>TAKEOUT FUKUI<div class=subtitle>福井県のお持ち帰りグルメまとめました <a href=https://dearfukui.jp/gourmet/12951>#頑張ろう福井グルメ</a></div></h1>
 <div class="container">
