@@ -1,0 +1,502 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"/>
+<title>Takeout FUKUI</title>
+<meta property="og:title" content="Takeout FUKUI"/>
+<meta property="og:description" content="福井県での持ち帰れるグルメナビ"/>
+<link rel="icon" type="image/png" href="takeout_icon.png">
+<link rel="apple-touch-icon" href="takeout_icon.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://code4fukui.github.io/takeout.png"/>
+<meta property="og:image" content="https://code4fukui.github.io/takeout.png"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="format-detection" content="telephone=no"/>
+<style>
+body {
+	--main-color: hsl(10, 90%, 60%);
+	font-family: sans-serif;
+	font-size: 1.5vmax;
+	margin: 0;
+	background-color: var(--main-color);
+}
+h1 {
+	margin: 0;
+	padding: .8em .3em 0.1em .3em;
+	color: white;
+	text-align: center;
+	font-size: 10vw;
+}
+h1 img {
+	width: 50vw;
+}
+input[type=text] {
+	max-width: 1000px;
+	width: 60vw;
+	margin: .5em .2em 0.2em .5em;
+	font-size: 24px;
+	border: 2px solid black;
+	line-height: 1.3em;
+	padding: 0.1em .3em;
+}
+button {
+	margin: .5em .2em 0em .2em;
+	font-size: 24px;
+	border: 2px solid black;
+	line-height: 1.3em;
+}
+.subtitle {
+	color: #333;
+	font-size: 3vw;
+}
+.subtitle > a {
+	color: #333 !important;
+	text-decoration: none;
+}
+#checekboxes {
+	text-align: center;
+	font-size: 80%;
+}
+input[type="checkbox"] {
+	border-color: #aaa;
+	font-size: 120%;
+}
+label {
+	display: inline-block;
+}
+#total {
+	text-align: center;
+	font-size: 80%;
+	margin-bottom: .5em;
+}
+h2 {
+	background-color: #F7F8F4;
+	padding: .2em 0em .5em 0em;
+	margin: 0;
+}
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+.item {
+	background-color: #F5F5F5;
+	padding: 1em;
+	margin: 1em;
+	line-height: 1.8em;
+}
+.item img {
+	max-width: 80vw;
+}
+.url {
+	background-color: var(--main-color);;
+	border-radius: 2vw;
+	font-weight: bold;
+	text-align: center;
+	padding: .5em;
+	margin-bottom: 1em;
+}
+.url > a {
+	display: block;
+	text-decoration: none;
+	color: black !important;
+}
+.searchboxid {
+	text-align: center;
+}
+.sitedesc {
+	font-size: 80%;
+	display: inline-block;
+}
+.sitedesc > a {
+	color: black !important;
+}
+.description {
+	margin-bottom: .8em;
+}
+.tags {
+	text-align: center;
+	margin: .6em;
+}
+.tags > div {
+	display: inline-block;
+	border: 1px solid black;
+	padding: 0 .3em;
+	font-size: 80%;
+	line-height: 1.8em;
+	background-color: white;
+	margin: .5em 0.2em;
+	cursor: pointer;
+}
+#src {
+	margin: .5em;
+}
+#src a {
+	color: black !important;
+}
+#note {
+	font-size: 70%;
+	margin: 1em;
+}
+#note a {
+	color: black !important;
+}
+#share {
+	margin: 0 1em;
+}
+#share > * {
+  vertical-align: bottom;
+}
+#fb-share-button {
+	display: inline-block;
+	margin: .1em;
+}
+#qrcodecontainer {
+	text-align: center;
+}
+</style>
+<script>"use strict"
+
+/*
+const makeTextWithLink = function(s) {
+  const reg = new RegExp("((https?)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+))", "g")
+  //return s.replace(reg, "<a href='$1' target='_blank'>$1</a>")
+  return s.replace(reg, "<a href='$1'>$1</a>")
+}
+*/
+
+window.onload = async function() {
+	const data = await (await fetch('data/takeoutfukui.json')).json()
+	console.log(data)
+	shuffle(data)
+
+	const addTag = function(tag) {
+		const div = create('div')
+		div.textContent = tag
+		toptags.appendChild(div)
+		div.onclick = function() {
+			searchbox.value = this.textContent
+			show()
+		}
+	}
+	/*
+	const tags = []
+	for (const d of data) {
+		//const tag2 = [ d['分野'], d['キーワード'] ]
+		const tag2 = d['分野'].split(',')
+		for (let tag of tag2) { 
+			tag = tag.trim()
+			if (tag == '教育・学習支援')
+				tag = '教育、学習支援'
+			if (tags.indexOf(tag) == -1) {
+				tags.push(tag)
+			}
+		}
+	}
+	tags.sort()
+	for (const tag of tags) {
+		if (tag.indexOf("その他") == -1)
+			addTag(tag)
+	}
+	addTag('その他')
+	//addTag('テレワーク')
+	*/
+
+	const items = []
+	const show = function() {
+		const key = searchbox.value
+		clear(main)
+
+		let hash = key
+		let allflg = true
+		let alloffflg = true
+		/*
+		for (const chk in chktarget) {
+			const chkbox = document.getElementById(chk)
+			if (chkbox.checked) {
+				const text = chkbox.parentElement.textContent
+				hash += " " + text
+				alloffflg = false
+			} else {
+				allflg = false
+			}
+		}
+		*/
+		if (allflg)
+			hash = key
+		document.location.hash = hash.length > 0 ? '#' + encodeURIComponent(hash) : ""
+		let cnt = 0
+		const maxcnt = 20
+		A: for (const d of data) {
+			if (key) {
+				const keys = key.replace(/　/g, ' ').split(' ')
+				for (const k of keys) {
+					let flg = false
+					for (const name in d) {
+						if (d[name].indexOf(k) >= 0) {
+							flg = true
+							break
+						}
+					}
+					if (!flg)
+						continue A
+				}
+			}
+			if (d.flg_takeout == 1 && !takeout.checked)
+				continue
+			if (d.flg_delivery == 1 && !delivery.checked)
+				continue
+			
+			cnt++
+			const div = create('div')
+			div.className = "item"
+			/*
+/*
+name: "グリルセピア"
+description: "<img src="https://doc-0o-4s-mymaps.googleusercontent.com/untrusted/hostedimage/vmuuf5hmshbjpc7eqpbcohjrr4/ttns35ec0ehkacsf30km433fng/1586233870000/oaYxLwTuCaledjvr3P62xz3pLnk4xBsZ/03513505763626667758/5AF2TALpE11tXhpr0Iz5dW8ev-E1XlrsCv5brV5_85zfTUD7CEchJt1AbN8m427_2E4CjXjDI03QTDRr80nteWizCI2MsioNmFLyWNEOqftlTCJKrYNmFHKRFagH-1syvaAne-ctpCPjZ0n0kLlD0Tm4mbTMADmkypkoSk2BMf0wlxjRxSmXZ-a16TupZim15Qvzhm_9I8P87_myqVI1nO5wxxXzv7HpNtbUFmyOzjJn4r1tsxo7T-UAeWSkJbqZAK4qZCd23gM_7kclIs56x54m9DWyti0fQLg?session=0&fife" height="200" width="auto" /><br><br><br><br><img src="https://doc-04-4s-mymaps.googleusercontent.com/untrusted/hostedimage/vmuuf5hmshbjpc7eqpbcohjrr4/vemc8dt05jgma8jnvb4632mnic/1586233870000/oaYxLwTuCaledjvr3P62xz3pLnk4xBsZ/03513505763626667758/5AF2TALriSslcaIC7dSb73MZivabmd3zhzMkWcc0aUGo_-WFVgvWEdqCosW1T5kZpmq4yj6M2Kb6Eeh-zY21ZI2h7EkZrLgOe8aAxHnQyCTif-4rObsrUVmMG0KXVJMs2sLt9N5gayKbYHT5enFVCJz3HLdlzXALMVB-SbUUMCmXwnzffsAu6UFq16vHdlZFeeHKBBR9q9B1salP2cDY_D1Z8BrmD8JRiiEDF_uxUVYUUuaGjCxiHyOcckvMidI1Vm6jwJoRv7TcxR9bHFwYRLNRSItMq6AHrqg?session=0&fife" height="200" width="auto" />"
+styleUrl: "#icon-1577-E65100"
+ExtendedData/Data/value: "https://doc-0o-4s-mymaps.googleusercontent.com/untrusted/hostedimage/vmuuf5hmshbjpc7eqpbcohjrr4/ttns35ec0ehkacsf30km433fng/1586233870000/oaYxLwTuCaledjvr3P62xz3pLnk4xBsZ/03513505763626667758/5AF2TALpE11tXhpr0Iz5dW8ev-E1XlrsCv5brV5_85zfTUD7CEchJt1AbN8m427_2E4CjXjDI03QTDRr80nteWizCI2MsioNmFLyWNEOqftlTCJKrYNmFHKRFagH-1syvaAne-ctpCPjZ0n0kLlD0Tm4mbTMADmkypkoSk2BMf0wlxjRxSmXZ-a16TupZim15Qvzhm_9I8P87_myqVI1nO5wxxXzv7HpNtbUFmyOzjJn4r1tsxo7T-UAeWSkJbqZAK4qZCd23gM_7kclIs56x54m9DWyti0fQLg?session=0&fife https://doc-04-4s-mymaps.googleusercontent.com/untrusted/hostedimage/vmuuf5hmshbjpc7eqpbcohjrr4/vemc8dt05jgma8jnvb4632mnic/1586233870000/oaYxLwTuCaledjvr3P62xz3pLnk4xBsZ/03513505763626667758/5AF2TALriSslcaIC7dSb73MZivabmd3zhzMkWcc0aUGo_-WFVgvWEdqCosW1T5kZpmq4yj6M2Kb6Eeh-zY21ZI2h7EkZrLgOe8aAxHnQyCTif-4rObsrUVmMG0KXVJMs2sLt9N5gayKbYHT5enFVCJz3HLdlzXALMVB-SbUUMCmXwnzffsAu6UFq16vHdlZFeeHKBBR9q9B1salP2cDY_D1Z8BrmD8JRiiEDF_uxUVYUUuaGjCxiHyOcckvMidI1Vm6jwJoRv7TcxR9bHFwYRLNRSItMq6AHrqg?session=0&fife"
+ExtendedData/Data/_name: "gx_media_links"
+longitude: "136.1807938"
+latitude: "35.9672856"
+altitude: "0"
+flg_takeout: "1"
+flg_delivery: ""
+*/
+// <ruby>${d['http://xmlns.com/foaf/0.1/#name']}<rt>${d['name_yomi']}</rt></ruby>
+			div.innerHTML = `
+				<h2>${d.name}</h2>
+				<div class=description>${d.description}</div>
+				<div class=url><a href=${'https://www.google.com/maps/dir/?api=1&destination=' + d.latitude + "," + d.longitude}>お店へナビ</a></div>
+				</div>
+			`
+			/*
+				<div class=from>提供: ${d['企業等']}</div>
+				<div class=target>対象: ${d['対象者']}</div>
+				<div class=fee>費用等: ${d['無料/有料']}</div>
+				<div class=span>提供期間: ${d['開始日']}〜${d['終了日']} ${d['期間備考']}</div>
+				<div class=id>情報源: ${d['情報源']} (発表日付 ${d['発表日付']})</div>
+
+				<div class=tags>
+				<div class=type>${d['分野']}</div>
+				<div class=service>${d['サービス分類']}</div>
+				<div class=keyword>${d['キーワード']}</div>
+			*/
+			/*
+			const SET = { '.type': '分野', '.service': 'サービス分類', '.keyword': 'キーワード' }
+			for (const s in SET) {
+				const sname = SET[s]
+				div.querySelector(s).onclick = function() {
+					searchbox.value = d[sname]
+					show()
+				}
+			}
+			*/
+			main.appendChild(div)
+			//if (cnt == maxcnt)
+			//	break
+		}
+		total.textContent = `${cnt}件 / ${data.length}件`
+	}
+	searchbox.onkeyup = searchbox.onchange = show
+	searchbox.onfocus = function() {
+		this.select()
+	}
+	if (window['btnclear']) {
+		btnclear.onclick = function() {
+			searchbox.value = ''
+			show()
+		}
+	}
+
+	let chkflg = false
+	if (document.location.hash.length > 1) {
+		let key = decodeURIComponent(document.location.hash.substring(1))
+		/*
+		for (const chk in chktarget) {
+			const chkbox = document.getElementById(chk)
+			const lbl = chkbox.parentElement.textContent
+			if (key.endsWith(" " + lbl)) {
+				key = key.substring(0, key.length - 1 - lbl.length)
+				chkbox.checked = true
+				chkflg = true
+			}
+		}
+		*/
+		searchbox.value = key
+	}
+	/*
+	for (const chk in chktarget) {
+		const chkbox = document.getElementById(chk)
+		chkbox.onchange = show
+	}
+	*/
+	takeout.onchange = show
+	delivery.onchange = show
+
+	show()
+	btngacha.onclick = () => {
+		shuffle(data)
+		show()
+	}
+}
+// util
+const convertCSVtoArray = function(s) {
+	const res = []
+	let st = 0
+	let line = []
+	let sb = null
+	if (!s.endsWith("\n"))
+		s += "\n"
+	const len = s.length
+	for (let i = 0; i < len; i++) {
+		let c = s.charAt(i)
+		if (c == '\r')
+			continue
+		if (st == 0) {
+			if (c == '\n') {
+				if (line.length > 0)
+					line.push("")
+				res.push(line)
+				line = []
+			} else if (c == ',') {
+				line.push("")
+			} else if (c == '"') {
+				sb = ""
+				st = 2
+			} else {
+				sb = c
+				st = 1
+			}
+		} else if (st == 1) {
+			if (c == '\n') {
+				line.push(sb)
+				res.push(line)
+				line = []
+				st = 0
+				sb = null
+			} else if (c == ',') {
+				line.push(sb)
+				sb = null
+				st = 0
+			} else {
+				sb += c
+			}
+		} else if (st == 2) {
+			if (c == '"') {
+				st = 3
+			} else {
+				sb += c
+			}
+		} else if (st == 3) {
+			if (c == '"') {
+				sb += c
+				st = 2
+			} else if (c == ',') {
+				line.push(sb)
+				sb = null
+				st = 0
+			} else if (c == '\n') {
+				line.push(sb)
+				res.push(line)
+				line = []
+				st = 0
+				sb = null
+			}
+		}
+	}
+	if (sb != null)
+		line.push(sb)
+	if (line.length > 0)
+		res.push(line)
+	return res
+}
+const csv2json = function(csv) {
+	const res = []
+	const head = csv[0]
+	for (let i = 1; i < csv.length; i++) {
+		const d = {}
+		for (let j = 0; j < head.length; j++) {
+			d[head[j]] = csv[i][j]
+		}
+		res.push(d)
+	}
+	return res
+}
+const fetchViaProxy = async function(url) {
+	//const proxyhost = "https://app.sabae.cc/proxy"
+	const proxyhost = "http://localhost:8003/proxy"
+	const proxyurl = proxyhost + "/?url=" + encodeURIComponent(url)
+	const data = await (await fetch(proxyurl)).text()
+	return data
+}
+const fetchGoogleSpreadSheet = async function(key) {
+	const csvurl = `https://docs.google.com/spreadsheets/d/e/${key}/pub?gid=0&single=true&output=csv`
+	const csv = await fetchViaProxy(csvurl)
+	const data = convertCSVtoArray(csv)
+	//data.shift()
+	return csv2json(data)
+}
+const create = function(tag, cls) {
+	var res = document.createElement(tag)
+	if (cls != null)
+		res.className = cls
+	return res
+}
+const clear = function(id) {
+	var div = typeof id == "string" ? get(id) : id
+	while (div.hasChildNodes()) {
+		div.removeChild(div.lastChild)
+	}
+	div.scrollTop = 0
+	div.scrollLeft = 0
+}
+const rnd = function(n) {
+	return Math.floor(Math.random() * n)
+}
+const shuffle = function(array) {
+	for (let i = 0; i < array.length; i++) {
+		const n = rnd(array.length)
+		const tmp = array[i]
+		array[i] = array[n]
+		array[n] = tmp
+	}
+}
+</script>
+</head>
+<body>
+
+<h1 id=title>TAKEOUT FUKUI<div class=subtitle>福井県のお持ち帰りグルメまとめました</div></h1>
+<div class="container">
+<div id=total></div>
+<div class="searchboxid">
+	<div class=sitedesc></div>
+	<input type=text id=searchbox placeholder="キーワード"><button id=btngacha>ガチャ</button>
+</div>
+<div id="toptags" class=tags></div>
+<div id="checekboxes">
+	<label><input type=checkbox id=takeout checked>テイクアウト</label>
+	<label><input type=checkbox id=delivery checked>デリバリー</label>
+</div>
+<div id="main"></div>
+
+<div id="note">
+</div>
+
+<!--
+<div id='share'>
+	<div id="fb-root"></div>
+	<script async defer crossorigin="anonymous" src="https://connect.facebook.net/ja_JP/sdk.js#xfbml=1&version=v6.0&appId=214172318638956&autoLogAppEvents=1"></script>
+	<div class="fb-share-button" data-href="https://vscovid19.code4japan.org/" data-layout="button_count" data-size="small"><a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fvscovid19.code4japan.org%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">シェア</a></div>
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+	<a href="https://b.hatena.ne.jp/entry/s/vscovid19.code4japan.org/" class="hatena-bookmark-button" data-hatena-bookmark-layout="basic-label-counter" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/v4/public/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+</div>
+-->
+
+<div id="src">
+Data: 許諾 テイクアウト福井データ<bR>
+App：Takeout FUKUI - <a href=https://creativecommons.org/licenses/by/4.0/deed.ja>CC BY</a> <a href=https://www.code4japan.org/>Code for Fukui</a> <a href='https://fukuno.jig.jp/'>@taisukef</a> (<a href=https://github.com/code4fukui/takeoutfukui>src on GitHub</a>)<br>
+</div>
+
+<div id=qrcodecontainer><img id=qrcode><script>addEventListener("load", () => qrcode.src = "https://chart.apis.google.com/chart?chs=140x140&cht=qr&chl=" + encodeURIComponent(document.location))</script></div>
+</div>
+
+</body>
+</html>
