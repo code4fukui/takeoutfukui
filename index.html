@@ -232,10 +232,33 @@ window.onload = async function() {
 	addTag('その他')
 	//addTag('テレワーク')
 	*/
+	let shows = []
+
+	let icons = []
+	const lls = []
+	for (const d of data) {
+		const ll = [ d.latitude, d.longitude ]
+		const iconimg = d.flg_takeout ? 'img/icon_takeout.png' : 'img/icon_delivery.png'
+		const icon = map.addIcon(ll[0], ll[1], function(e) {
+			const d = e.sourceTarget.data
+			if (shows.indexOf(d.name) >= 0) {
+				document.location.hash = '#' + encodeURIComponent(d.name)
+			} else {
+				searchbox.value = ''
+				show(true)
+				document.location.hash = '#' + encodeURIComponent(d.name)
+			}
+		}, iconimg, 48)
+		icon.data = d
+		icons.push(icon)
+		ll.push(ll)
+	}
+	if (lls.length > 0)
+		map.fitBounds(lls)
+
 
 	const items = []
-	let icons = []
-	const show = function() {
+	const show = function(noupdatemap) {
 		const key = searchbox.value
 		clear(main)
 
@@ -261,10 +284,13 @@ window.onload = async function() {
 		const maxcnt = 20
 		const lls = []
 
+		/*
 		for (const icon of icons) {
 			map.removeLayer(icon)
 		}
 		icons = []
+		*/
+		shows = []
 		A: for (const d of data) {
 			if (key) {
 				const keys = key.replace(/　/g, ' ').split(' ')
@@ -332,26 +358,35 @@ flg_delivery: ""
 			}
 			*/
 			main.appendChild(div)
+			shows.push(d.name)
+
+			div.querySelector('h2').onclick = function(e) {
+				const name = decodeURIComponent(document.location.hash.substring(1))
+				for (const icon of icons) {
+					if (icon.data.name == name) {
+						const ll = icon.getLatLng()
+						map.setView(ll, 17)
+						break
+					}
+				}
+			}
+
 
 			const ll = [ d.latitude, d.longitude ]
-			const iconimg = d.flg_takeout ? 'img/icon_takeout.png' : 'img/icon_delivery.png'
-			const icon = map.addIcon(ll[0], ll[1], function(e) {
-				const d = e.sourceTarget.data
-				document.location.hash = '#' + encodeURIComponent(d.name)
-			}, iconimg, 48)
-			icon.data = d
-			icons.push(icon)
 			lls.push(ll)
+
 
 			//if (cnt == maxcnt)
 			//	break
 
 		}
-		if (lls.length > 0)
+		if (lls.length > 0 && !noupdatemap)
 			map.fitBounds(lls)
 		total.textContent = `${cnt}件 / ${data.length}件`
 	}
-	searchbox.onkeyup = searchbox.onchange = show
+	searchbox.onkeyup = searchbox.onchange = function() {
+		show()
+	}
 	searchbox.onfocus = function() {
 		this.select()
 	}
