@@ -244,7 +244,7 @@ window.onload = async function() {
 	for (const d of data) {
 		//const tag2 = [ d['分野'], d['キーワード'] ]
 		const tag2 = d['分野'].split(',')
-		for (let tag of tag2) { 
+		for (let tag of tag2) {
 			tag = tag.trim()
 			if (tag == '教育・学習支援')
 				tag = '教育、学習支援'
@@ -339,7 +339,7 @@ window.onload = async function() {
 				continue
 			if (d.flg_delivery == 1 && !delivery.checked)
 				continue
-			
+
 			cnt++
 			const div = create('div')
 			div.className = "item"
@@ -370,7 +370,6 @@ flg_delivery: ""
 				<div class=fee>費用等: ${d['無料/有料']}</div>
 				<div class=span>提供期間: ${d['開始日']}〜${d['終了日']} ${d['期間備考']}</div>
 				<div class=id>情報源: ${d['情報源']} (発表日付 ${d['発表日付']})</div>
-
 				<div class=tags>
 				<div class=type>${d['分野']}</div>
 				<div class=service>${d['サービス分類']}</div>
