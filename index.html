@@ -23,7 +23,7 @@
 <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
 <script src="https://code4fukui.github.io/egmapjs/egmap.js"></script>
 <link rel="stylesheet" href="https://code4fukui.github.io/egmapjs/egmap.css"/>
-<script src="https://fukuno.jig.jp/fukuno.js"></script>
+<script src="fukuno.js"></script>
 <script src="https://code4fukui.github.io/egmapjs/sparql.js"></script>
 
 <style>
@@ -110,6 +110,13 @@ h2 {
 }
 .item img {
 	max-width: 80vw;
+}
+.banner {
+	text-align: center;
+}
+.banner img {
+	width: 60vw;
+	margin-top: 1em;
 }
 .url {
 	background-color: var(--main-color);;
@@ -198,6 +205,12 @@ h2 {
 	input[type=text] {
 		width: 300px;
 	}
+	.item img {
+		max-width: 420px;
+	}
+	.banner img {
+		width: 250px;
+	}
 	#mapid {
 		position: fixed;
 		top: 0;
@@ -222,7 +235,9 @@ const makeTextWithLink = function(s) {
 */
 
 window.onload = async function() {
-	const data = await (await fetch('data/takeoutfukui.json')).json()
+	const data1 = await (await fetch('data/takeoutfukui.json')).json()
+	const data2 = csv2json(decodeCSV(await (await fetch('data/takeout-sabae-map.csv')).text()))
+	const data = data1.concat(data2)
 	console.log(data)
 	shuffle(data)
 
@@ -357,10 +372,14 @@ flg_takeout: "1"
 flg_delivery: ""
 */
 // <ruby>${d['http://xmlns.com/foaf/0.1/#name']}<rt>${d['name_yomi']}</rt></ruby>
+			let body = d.description
+			if (d.flg_takeoutsabae) {
+				body += `<div class=banner><a href=${d.url} target=_blank><img src=img/takeoutsabae_banner.jpg></a></div>`
+			}
 			div.innerHTML = `
 				<a name=${encodeURIComponent(d.name)} class=linka>
 				<h2><a href=#${encodeURIComponent(d.name)}>${d.name}</a></h2>
-				<div class=description>${d.description}</div>
+				<div class=description>${body}</div>
 				<div class=url><a href=${'https://www.google.com/maps/dir/?api=1&destination=' + d.latitude + "," + d.longitude}>お店へナビ</a></div>
 				</div>
 			`

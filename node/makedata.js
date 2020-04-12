@@ -25,8 +25,61 @@ const makeData = async function() {
   console.log(data.length)
   return true
 }
+const getLatLng = async function(urlgmap) {
+  const res = await fetch(urlgmap)
+  //console.log(res)
+  const url = res.url
+  const ll = url.match(/@(\d+\.\d+),(\d+\.\d+)/)
+  if (!ll)
+    return null
+  console.log(ll)
+  return { lat: ll[1], lng: ll[2] }
+}
+const sleep = async msec => new Promise(resolve => setTimeout(resolve, msec))
+
+const setDataLL = async function() {
+  const fn = '../data/export-post-2020-04-12_10-21-48'
+  const data = util.csv2json(util.readCSV(fn))
+  for (const d of data) {
+    if (d.map) {
+      const ll = await getLatLng(d.map)
+      if (ll) {
+        d.lat = ll.lat
+        d.lng = ll.lng
+      }
+      await sleep(100)
+    }
+  }
+  util.writeCSV('../data/takeout-sabae-20200412102148', util.json2csv(data))
+//  console.log(data)
+}
+const filterData = function() {
+  const data = util.csv2json(util.readCSV('../data/takeout-sabae-20200412102148'))
+  const res = []
+  for (const d of data) {
+    if (d.lat && d.lng) {
+      const d2 = {
+        url: `https://takeout-dish.com/sabae/${d.post_name}/`,
+        name: d.post_title,
+        description: d.post_content,
+        latitude: d.lat,
+        longitude: d.lng
+      }
+      const flgs = d.post_category.split(',')
+      for (const n of flgs) {
+        d2['flg_' + n] = 1
+      }
+      d2.flg_takeoutsabae = 1
+      res.push(d2)
+    }
+  }
+  util.writeCSV('../data/takeout-sabae-map', util.json2csv(res))
+}
 const main = async function() {
-  makeData()
+  //makeData()
+  //await setDataLL()
+  //await getLatLng('https://goo.gl/maps/RXWXrevizkwVZVPJ8')
+  filterData()
 }
 if (require.main === module) {
   main()

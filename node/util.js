@@ -96,7 +96,7 @@ exports.encodeCSV = function(csvar) {
       const v = line[j]
       if (v == undefined || v.length == 0) {
         s2.push("")
-      } else if (parseInt(v) == v) {
+      } else if (typeof v == 'number') {
         s2.push(v)
       } else if (v.indexOf('"') >= 0) {
         s2.push('"' + v.replace(/\"/g, '""') + '"')
@@ -147,16 +147,23 @@ exports.json2csv = function(json) {
   }
   return res
 }
-
+exports.addBOM = function(s) {
+  return '\ufeff' + s
+}
 exports.writeCSV = function(fnbase, csvar) {
   const s = this.encodeCSV(csvar)
-  fs.writeFileSync(fnbase + '.csv', s, 'utf-8')
-  fs.writeFileSync(fnbase + '.sjis.csv', iconv.encode(s, 'ShiftJIS'))
+  //const bom = new Uint8Array([ 0xEF, 0xBB, 0xBF ]) // add BOM
+  //fs.writeFileSync(fnbase + '.csv', bom)
+  fs.writeFileSync(fnbase + '.csv', this.addBOM(s), 'utf-8')
+  //fs.writeFileSync(fnbase + '.sjis.csv', iconv.encode(s, 'ShiftJIS'))
   fs.writeFileSync(fnbase + '.json', JSON.stringify(this.csv2json(csvar)))
 }
 exports.readCSV = function(fnbase) {
   try {
-    const data = fs.readFileSync(fnbase + '.csv', 'utf-8')
+    let data = fs.readFileSync(fnbase + '.csv', 'utf-8')
+    if (data.charCodeAt(0) == 0xfeff) {
+      data = data.substring(1)
+    }
     const csv = this.decodeCSV(data)
     return csv
   } catch (e) {
@@ -236,6 +243,10 @@ exports.mkdirSyncForFile = function(fn) {
     }
   }
 }
+exports.writeFileSync = function(fn, data, enc) {
+  this.mkdirSyncForFile(fn)
+  fs.writeFileSync(fn, data, enc)
+}
 exports.getExtFromURL = function(url) {
   let ext = ".txt"
   const n = url.lastIndexOf('/')
@@ -246,6 +257,21 @@ exports.getExtFromURL = function(url) {
   }
   return ext
 }
+exports.getHistogram = function(s) {
+  const chs = {}
+  for (const c of s) {
+    if (!chs[c.charCodeAt(0)])
+      chs[c.charCodeAt(0)] = 1
+    else
+      chs[c.charCodeAt(0)]++
+  }
+  const ar = []
+  for (const c in chs) {
+    ar.push([ c, chs[c] ])
+  }
+  ar.sort((a, b) => b[1] - a[1])
+  return ar
+}
 exports.fetchText = async function(url, enc) {
   if (!enc) {
     return await (await fetch(url)).text()
@@ -253,6 +279,30 @@ exports.fetchText = async function(url, enc) {
   const abuf = await (await fetch(url)).arrayBuffer()
   var buf = new Buffer.from(abuf, 'binary')
   return iconv.decode(buf, enc)
+}
+exports.fetchTextWithLastModified = async function(url, enc) {
+  const res = await fetch(url)
+  let lastUpdate = null
+  if (res.status != 200)
+    return null
+  //console.log(res, res.status)
+  const s = res.headers.get('last-modified')
+  if (s) {
+    lastUpdate = this.formatYMDHMS(new Date(s))
+  }
+  const abuf = await res.arrayBuffer()
+  if (!enc) {
+    //const text = String.fromCharCode.apply(null, new Uint8Array(abuf)) // await res.text()
+    const text = new TextDecoder().decode(abuf)
+    //console.log(this.getHistogram(text))
+    // console.log(String.fromCharCode(65533))
+    if (text.indexOf(String.fromCharCode(65533)) == -1) {
+      return [ text, lastUpdate ]
+    }
+    enc = 'ShiftJIS'
+  }
+  const buf = new Buffer.from(abuf, 'binary')
+  return [ iconv.decode(buf, enc), lastUpdate ]
 }
 exports.getWebWithCache = async function(url, path, cachetime, enc) {
   const ext = exports.getExtFromURL(url)
